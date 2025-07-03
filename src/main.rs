@@ -21,6 +21,57 @@ struct Cli {
     /// FASTQ file for R2 (optional)
     #[arg(long, short = '2')]
     r2: Option<PathBuf>,
+
+    /// Ommit some nulceotides from the start of the cell read?
+    #[arg(long)]
+    from_char: Option<usize>,
+
+    /// Stop reading from the cell read prematurely?
+    #[arg(long)]
+    to_char: Option<usize>,
+
+    /// Does the Cell read need to be reverse complemented?
+    #[arg(long)]
+    recomp: bool
+}
+
+pub fn process_cell_sequence(
+    seq: &[u8],
+    from_char: Option<usize>,
+    to_char: Option<usize>,
+    revcomp: bool,
+) -> String {
+    // Apply front and back clipping
+    let start = from_char.unwrap_or(0);
+    let end = to_char.unwrap_or(seq.len());
+
+    // Bounds check
+    let clipped = if start < end && end <= seq.len() {
+        &seq[start..end]
+    } else {
+        &seq
+    };
+
+    // Reverse complement if needed
+    let final_seq = if revcomp {
+        clipped
+            .iter()
+            .rev()
+            .map(|b| match b {
+                b'A' | b'a' => b'T',
+                b'T' | b't' => b'A',
+                b'G' | b'g' => b'C',
+                b'C' | b'c' => b'G',
+                b'N' | b'n' => b'N',
+                _ => b'N', // fallback for unexpected characters
+            })
+            .collect::<Vec<u8>>()
+    } else {
+        clipped.to_vec()
+    };
+
+    // Convert to String
+    String::from_utf8_lossy(&final_seq).to_string()
 }
 
 fn fastq_record_to_string(
@@ -131,18 +182,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         // Get the cell sequence string
-        //let cell_seq = String::from_utf8_lossy(&cell_rec.seq());
+        let cell_seq = process_cell_sequence(&cell_rec.seq(), cli.from_char, cli.to_char, cli.recomp );
+        let cell = cell_seq.as_bytes();
 
         // Write cell read unchanged to output
         //cell_writer.write(cell_rec.id(), cell_rec.desc(), cell_rec.seq(), cell_rec.qual())?;
 
         // Modify r1 ID by appending |cell:<cell_seq>
-        let r1_str = fastq_record_to_string( &r1_rec.id(), &cell_rec.seq(), &r1_rec.seq(), r1_rec.qual() );
+        let r1_str = fastq_record_to_string( &r1_rec.id(), &cell, &r1_rec.seq(), r1_rec.qual() );
         r1_writer.write( r1_str.as_bytes() )?;
 
         // Modify and write r2 if present
         if let (Some(r2_writer), Some(r2_rec)) = (r2_writer.as_mut(), r2_rec) {
-            let r2_str = fastq_record_to_string( &r2_rec.id(), &cell_rec.seq(), &r2_rec.seq(), r2_rec.qual() );
+            let r2_str = fastq_record_to_string( &r2_rec.id(), &cell, &r2_rec.seq(), r2_rec.qual() );
             r2_writer.write(r2_str.as_bytes())?;
         }
     }
@@ -150,3 +202,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_process_cell_sequence_clipping_and_revcomp() {
+        let seq = b"ACGTTAGC";
+
+        // Clip 2 from front and 2 from back => "GTT"
+        // Revcomp => "AAC"
+        let result = process_cell_sequence(seq, Some(2), Some(5), true);
+        assert_eq!(result, "AAC", "Expected reverse complement of 'GTT' to be 'CTT'");
+    }
+
+    #[test]
+    fn test_no_clip_no_revcomp() {
+        let seq = b"ATGC";
+        let result = process_cell_sequence(seq, None, None, false);
+        assert_eq!(result, "ATGC", "Should return original sequence unchanged");
+    }
+
+    #[test]
+    fn test_only_revcomp() {
+        let seq = b"ATGC";
+        let result = process_cell_sequence(seq, None, None, true);
+        assert_eq!(result, "GCAT", "Expected reverse complement of 'ATGC' to be 'GCAT'");
+    }
+
+    #[test]
+    fn test_clip_out_of_bounds() {
+        let seq = b"ATGC";
+        let result = process_cell_sequence(seq, Some(10), Some(0), false);
+        assert_eq!(result, "ATGC", "Clipping beyond bounds should return original");
+    }
+
+    #[test]
+    fn test_clip_to_single_base_and_revcomp() {
+        let seq = b"CCACCC";
+        let result = process_cell_sequence(seq, Some(2), Some(3), true); // should be "A", revcomp -> "T"
+        assert_eq!(result, "T", "Expected reverse complement of 'A' to be 'T'");
+    }
+}
