@@ -190,12 +190,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Modify r1 ID by appending |cell:<cell_seq>
         let r1_str = fastq_record_to_string( &r1_rec.id(), &cell, &r1_rec.seq(), r1_rec.qual() );
-        r1_writer.write( r1_str.as_bytes() )?;
+        r1_writer.write_all( r1_str.as_bytes() )?;
 
         // Modify and write r2 if present
         if let (Some(r2_writer), Some(r2_rec)) = (r2_writer.as_mut(), r2_rec) {
             let r2_str = fastq_record_to_string( &r2_rec.id(), &cell, &r2_rec.seq(), r2_rec.qual() );
-            r2_writer.write(r2_str.as_bytes())?;
+            r2_writer.write_all(r2_str.as_bytes())?;
         }
     }
 
