@@ -84,7 +84,7 @@ fn fastq_record_to_string(
 
     s.push('@');
     s.push_str(&String::from_utf8_lossy(id));
-    s.push(' ');
+    s.push(':');
     s.push_str(&String::from_utf8_lossy(desc));
     s.push('\n');
 
