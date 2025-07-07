@@ -83,7 +83,17 @@ fn fastq_record_to_string(
     let mut s = String::new();
 
     s.push('@');
-    s.push_str(&String::from_utf8_lossy(id));
+
+    let cleaned: String = id
+    .iter()
+    .map(|&b| if b == b' ' { b':' } else { b })
+    .collect::<Vec<u8>>() // collect as Vec<u8>
+    .into_iter()
+    .map(|b| b as char)
+    .collect(); // convert to String
+
+    s.push_str(&cleaned);
+    
     s.push(':');
     s.push_str(&String::from_utf8_lossy(desc));
     s.push('\n');
