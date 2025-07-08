@@ -3,6 +3,9 @@ name = "fastq_add_cell"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata]
+requires = ["pigz >= 2.3"]
+
 [dependencies]
 needletail = "0.6"
 flate2 = "1.0"

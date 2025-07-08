@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{BufReader};
 use flate2::read::MultiGzDecoder;
 use needletail::parse_fastx_reader;
+use std::env;
 
 #[test]
 fn test_fastq_add_cell_ids() {
@@ -10,9 +11,26 @@ fn test_fastq_add_cell_ids() {
     let r1_path = "testData/R1.fastq.gz";
     let r2_path = "testData/R2.fastq.gz";
 
+    let is_release_mode = !cfg!(debug_assertions);
+
     // Run the binary
-    let output = Command::new("target/release/fastq_add_cell")
-        .args(&["-c", cell_path, "-1", r1_path, "-2", r2_path])
+    let command = if is_release_mode {
+        "./target/release/fastq_add_cell"
+    } else {
+        "./target/debug/fastq_add_cell"
+    };
+    let cmd = [
+        &command,
+        "-c", &cell_path,
+        "-1", &r1_path,
+        "-2", &r2_path,
+    ];
+
+    println!("Running: {}", cmd.join(" "));
+
+    // Run the command
+    let output = Command::new(cmd[0])
+        .args(&cmd[1..])
         .output()
         .expect("failed to execute fastq_add_cell");
 
