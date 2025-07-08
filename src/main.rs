@@ -146,12 +146,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     // Open cell FASTQ reader
-    let mut cell_reader = parse_fastx_file(&cli.cell).expect("failed to read from cell fastq");
-    let mut r1_reader = parse_fastx_file(&cli.r1).expect("failed to read from r1 fastq");
+    let mut cell_reader = parse_fastx_file(&cli.cell).expect("failed to read from CELL fastq");
+    let mut r1_reader = parse_fastx_file(&cli.r1).expect("failed to read from R1 fastq");
 
     // Optional r2 reader
     let mut r2_reader = match &cli.r2 {
-        Some(p) => Some( parse_fastx_file(p).expect("failed to read from r2 fastq") ),
+        Some(p) => Some( parse_fastx_file(p).expect("failed to read from R2 fastq") ),
         None => None,
     };
 
