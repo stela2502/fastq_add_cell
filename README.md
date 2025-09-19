@@ -1,3 +1,4 @@
+[![Rust](https://github.com/stela2502/fastq_add_cell/actions/workflows/rust.yml/badge.svg)](https://github.com/stela2502/fastq_add_cell/actions/workflows/rust.yml)
 # fastq_add_cell
 
 
